@@ -2,3 +2,6 @@
 .dart_tool
 pubspec.lock
 **/pubspec_overrides.yaml
+
+**.freezed.dart
+**.g.dart
