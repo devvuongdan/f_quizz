@@ -33,7 +33,7 @@ class UserDataSourceImpl implements UserDataSource {
   UserDataSourceImpl();
 
   ///
-  static const tableName = 'user3';
+  static const tableName = 'users';
 
   ///
   Future<Result> createTable({required Connection conn}) async {
