@@ -5,6 +5,7 @@ import 'package:backend/shared/responses/failures/failure_response.dart';
 import 'package:backend/shared/responses/failures/internal_server_error_response.dart';
 import 'package:backend/shared/responses/failures/notfound_response.dart';
 import 'package:backend/tasks/create_task_dto.dart';
+import 'package:backend/tasks/update_task_dto.dart';
 import 'package:either_dart/either.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shared/models/tasks/taskf.dart';
@@ -26,7 +27,7 @@ abstract class TaskDataSource {
   );
 
   ///
-  Future<Either<FailureResponse, TaskF>> updateTask(TaskF task);
+  Future<Either<FailureResponse, TaskF>> updateTask(UpdateTaskDto task);
 
   ///
   Future<Either<FailureResponse, bool>> deleteTaskByID(String id);
@@ -171,8 +172,58 @@ class TaskDataSourceImpl implements TaskDataSource {
   }
 
   @override
-  Future<Either<FailureResponse, TaskF>> updateTask(TaskF task) async {
-    throw UnimplementedError();
+  Future<Either<FailureResponse, TaskF>> updateTask(
+    UpdateTaskDto updateTaskDto,
+  ) async {
+    final now = DateTime.now();
+    try {
+      final conn = await Connection.open(
+        Endpoint(
+          host: 'localhost',
+          database: 'postgres',
+          username: 'user',
+          password: 'pass',
+        ),
+        settings: const ConnectionSettings(sslMode: SslMode.disable),
+      );
+      final result = await conn.execute(
+        Sql.named('SELECT * FROM $tableName WHERE id=@id'),
+        parameters: {'id': updateTaskDto.id},
+      );
+
+      if (result.isEmpty) {
+        await conn.close();
+        return Left(NotFoundResponse(time: DateTime.now().toIso8601String()));
+      } else {
+        final TaskF task =
+            TaskF.fromJson(jsonEncode(result.first.toColumnMap()));
+        final newTask = TaskF(
+          id: task.id,
+          createdAt: task.createdAt,
+          updatedAt: now,
+          status: updateTaskDto.status,
+          title: updateTaskDto.title,
+          description: updateTaskDto.description,
+        );
+        await conn.execute(
+          'UPDATE $tableName SET  updated_at=\$2, title=\$3, description=\$4, status=\$5 WHERE id=\$1',
+          parameters: [
+            newTask.id,
+            newTask.updatedAt.toIso8601String(),
+            newTask.title,
+            newTask.description,
+            newTask.status,
+          ],
+        );
+        await conn.close();
+        return Right(newTask);
+      }
+    } catch (e) {
+      print(e);
+      return Left(
+        InternalServerErrorResponse(time: DateTime.now().toIso8601String()),
+      );
+    }
   }
 
   ///docker run --detach --name postgres_f_quizz_test -p 127.0.0.1:5432:5432 -e POSTGRES_USER=user -e POSTGRES_DATABASE=database -e POSTGRES_PASSWORD=pass postgres
