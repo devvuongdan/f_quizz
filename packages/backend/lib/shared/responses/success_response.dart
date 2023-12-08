@@ -54,5 +54,5 @@ class SuccessResponseList<T extends DataF> extends ResponseF<T> {
 ///
 class SuccessResult extends ResultF {
   ///
-  const SuccessResult() : super(ok: false, message: 'Success');
+  const SuccessResult() : super(ok: true, message: 'Success');
 }
