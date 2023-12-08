@@ -1,6 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first, missing_whitespace_between_adjacent_strings, lines_longer_than_80_chars, omit_local_variable_types, avoid_print
 import 'dart:convert';
 
+import 'package:backend/shared/responses/failures/bad_request_response.dart';
 import 'package:backend/shared/responses/failures/failure_response.dart';
 import 'package:backend/shared/responses/failures/internal_server_error_response.dart';
 import 'package:backend/shared/responses/failures/notfound_response.dart';
@@ -15,7 +16,8 @@ import 'package:uuid/uuid.dart';
 abstract class TaskDataSource {
   ///
   Future<Either<FailureResponse, List<TaskF>>> getListTaskByParam({
-    Map<String, dynamic> querryParam = const {},
+    int? limit,
+    int? offset,
   });
 
   ///
@@ -39,7 +41,8 @@ class TaskDataSourceImpl implements TaskDataSource {
 
   @override
   Future<Either<FailureResponse, List<TaskF>>> getListTaskByParam({
-    Map<String, dynamic> querryParam = const {},
+    int? limit,
+    int? offset,
   }) async {
     final now = DateTime.now();
     try {
@@ -53,10 +56,31 @@ class TaskDataSourceImpl implements TaskDataSource {
         settings: const ConnectionSettings(sslMode: SslMode.disable),
       );
       await createTable(conn: conn);
+      late final Result result;
+      if (limit == null && offset == null) {
+        result = await conn.execute(
+          'SELECT * FROM $tableName',
+        );
+      } else if (limit != null && offset != null) {
+        result = await conn.execute(
+          'SELECT * FROM $tableName LIMIT $limit OFFSET $offset',
+        );
+      } else {
+        String errorMessage = 'Bad Request';
+        if (limit == null) {
+          errorMessage += ', missing LIMIT';
+        }
+        if (offset == null) {
+          errorMessage += ', missing OFFSET';
+        }
+        return Left(
+          BadRequestResponse(
+            result: FailureResult(message: errorMessage),
+            time: now.toIso8601String(),
+          ),
+        );
+      }
 
-      final result = await conn.execute(
-        'SELECT * FROM $tableName',
-      );
       await conn.close();
       if (result.isEmpty) {
         return Left(NotFoundResponse(time: now.toIso8601String()));
