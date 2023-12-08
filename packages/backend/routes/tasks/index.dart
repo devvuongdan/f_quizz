@@ -1,6 +1,6 @@
 // ignore_for_file: no_default_cases
 
-import 'dart:convert';
+// import 'dart:convert';
 
 import 'package:backend/shared/responses/failures/failure_response.dart';
 import 'package:backend/shared/responses/failures/method_not_allowed_response.dart';
@@ -61,13 +61,15 @@ Future<Response> _onPost(RequestContext context) async {
 
 Future<Response> _onGet(RequestContext context) async {
   final repo = context.read<TaskDataSource>();
-  final body = await context.request.body();
+  // final body = await context.request.body();
+  final params = context.request.uri.queryParameters;
+
   int? limit;
   int? offset;
-  if (body.isNotEmpty) {
-    final bodyMap = json.decode(body) as Map<String, dynamic>;
-    limit = int.tryParse(bodyMap['limit'].toString());
-    offset = int.tryParse(bodyMap['offset'].toString());
+
+  if (params.isNotEmpty) {
+    limit = int.tryParse(params['limit'].toString());
+    offset = int.tryParse(params['offset'].toString());
   }
 
   final result = await repo.getListTaskByParam(
