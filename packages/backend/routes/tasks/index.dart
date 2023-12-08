@@ -1,6 +1,5 @@
 // ignore_for_file: no_default_cases
 
-
 import 'package:backend/shared/responses/failures/failure_response.dart';
 import 'package:backend/shared/responses/failures/method_not_allowed_response.dart';
 import 'package:backend/shared/responses/success_response.dart';
@@ -15,8 +14,8 @@ Future<Response> onRequest(RequestContext context) async {
   switch (context.request.method) {
     case HttpMethod.post:
       return _onPost(context);
-    // case HttpMethod.get:
-    //   return _onGet(context);
+    case HttpMethod.get:
+      return _onGet(context);
 
     default:
       final err =
@@ -58,34 +57,34 @@ Future<Response> _onPost(RequestContext context) async {
   }
 }
 
-// Future<Response> _onGet(RequestContext context) async {
-//   final repo = context.read<TaskDataSource>();
-//   // final body = await context.request.body();
-//   // final createTaskDto = CreateTaskDto.fromJson(body);
-//   final result = await repo.getListTaskByParam();
-//   if (result is Right<FailureResponse, List<TaskF>>) {
-//     final dataList = result.right.map((e) {
-//       return TaskDto(
-//         id: e.id,
-//         createdAt: e.createdAt,
-//         updatedAt: e.updatedAt,
-//         status: e.status,
-//         title: e.title,
-//         description: e.description,
-//       );
-//     }).toList();
-//     final res = SuccessResponseList<TaskDto>(
-//       dataList: dataList,
-//       time: DateTime.now().toIso8601String(),
-//     );
-//     return Response.json(
-//       statusCode: res.code,
-//       body: res.toMap(),
-//     );
-//   } else {
-//     return Response.json(
-//       statusCode: result.left.code,
-//       body: result.left.toMap(),
-//     );
-//   }
-// }
+Future<Response> _onGet(RequestContext context) async {
+  final repo = context.read<TaskDataSource>();
+  // final body = await context.request.body();
+  // final createTaskDto = CreateTaskDto.fromJson(body);
+  final result = await repo.getListTaskByParam();
+  if (result is Right<FailureResponse, List<TaskF>>) {
+    final dataList = result.right.map((e) {
+      return TaskDto(
+        id: e.id,
+        createdAt: e.createdAt,
+        updatedAt: e.updatedAt,
+        status: e.status,
+        title: e.title,
+        description: e.description,
+      );
+    }).toList();
+    final res = SuccessResponseList<TaskDto>(
+      dataList: dataList,
+      time: DateTime.now().toIso8601String(),
+    );
+    return Response.json(
+      statusCode: res.code,
+      body: res.toMap(),
+    );
+  } else {
+    return Response.json(
+      statusCode: result.left.code,
+      body: result.left.toMap(),
+    );
+  }
+}
