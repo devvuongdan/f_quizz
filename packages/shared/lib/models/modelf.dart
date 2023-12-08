@@ -13,8 +13,8 @@ abstract class ModelF {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 

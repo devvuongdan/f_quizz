@@ -21,8 +21,8 @@ class TaskF extends ModelF {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
       'title': title,
       'description': description,
       'status': status,
@@ -32,8 +32,8 @@ class TaskF extends ModelF {
   factory TaskF.fromMap(Map<String, dynamic> map) {
     return TaskF(
       id: map['id'],
-      createdAt: DateTime.parse(map['createdAt'] as String),
-      updatedAt: DateTime.parse(map['updatedAt'] as String),
+      createdAt: DateTime.parse(map['created_at'] as String),
+      updatedAt: DateTime.parse(map['updated_at'] as String),
       title: map['title'] as String,
       description: map['description'] as String,
       status: map['status'] as int,
