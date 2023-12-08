@@ -5,3 +5,5 @@ pubspec.lock
 
 **.freezed.dart
 **.g.dart
+
+.DS_Store

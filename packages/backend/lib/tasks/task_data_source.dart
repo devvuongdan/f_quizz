@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:backend/shared/responses/failures/failure_response.dart';
 import 'package:backend/shared/responses/failures/internal_server_error_response.dart';
+import 'package:backend/shared/responses/failures/notfound_response.dart';
 import 'package:backend/tasks/create_task_dto.dart';
 import 'package:either_dart/either.dart';
 import 'package:postgres/postgres.dart';
@@ -39,6 +40,7 @@ class TaskDataSourceImpl implements TaskDataSource {
   Future<Either<FailureResponse, List<TaskF>>> getListTaskByParam({
     Map<String, dynamic> querryParam = const {},
   }) async {
+    final now = DateTime.now();
     try {
       final conn = await Connection.open(
         Endpoint(
@@ -54,17 +56,19 @@ class TaskDataSourceImpl implements TaskDataSource {
       final result = await conn.execute(
         'SELECT * FROM $tableName',
       );
+      await conn.close();
+      if (result.isEmpty) {
+        return Left(NotFoundResponse(time: now.toIso8601String()));
+      }
 
       final List<Map<String, dynamic>> data =
           result.map((element) => element.toColumnMap()).toList();
+
       final List<TaskF> taskList =
           data.map((e) => TaskF.fromJson(jsonEncode(e))).toList();
-
-      await conn.close();
       return Right(taskList);
     } catch (e, stacktree) {
-      print('Err $e, StackTree $stacktree');
-      final now = DateTime.now();
+      print('Err $e, Stacktree $stacktree');
       return Left(
         InternalServerErrorResponse(time: now.toIso8601String()),
       );
@@ -73,7 +77,44 @@ class TaskDataSourceImpl implements TaskDataSource {
 
   @override
   Future<Either<FailureResponse, TaskF>> getTaskByID(String id) async {
-    throw UnimplementedError();
+    try {
+      final conn = await Connection.open(
+        Endpoint(
+          host: 'localhost',
+          database: 'postgres',
+          username: 'user',
+          password: 'pass',
+        ),
+        settings: const ConnectionSettings(sslMode: SslMode.disable),
+      );
+      await _createTable(conn: conn);
+
+      final result = await conn.execute(
+        Sql.named('SELECT * FROM $tableName WHERE id=@id'),
+        parameters: {'id': id},
+      );
+      await conn.close();
+      if (result.isEmpty) {
+        return Left(NotFoundResponse(time: DateTime.now().toIso8601String()));
+      } else {
+        final List<Map<String, dynamic>> data =
+            result.map((element) => element.toColumnMap()).toList();
+        final List<TaskF> taskList =
+            data.map((e) => TaskF.fromJson(jsonEncode(e))).toList();
+
+        await conn.close();
+
+        return Right(
+          taskList.first,
+        );
+      }
+    } catch (e, stacktree) {
+      print('Err $e, StackTree $stacktree');
+
+      return Left(
+        InternalServerErrorResponse(time: DateTime.now().toIso8601String()),
+      );
+    }
   }
 
   @override
