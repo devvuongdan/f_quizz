@@ -52,7 +52,7 @@ class TaskDataSourceImpl implements TaskDataSource {
         ),
         settings: const ConnectionSettings(sslMode: SslMode.disable),
       );
-      await _createTable(conn: conn);
+      await createTable(conn: conn);
 
       final result = await conn.execute(
         'SELECT * FROM $tableName',
@@ -88,7 +88,7 @@ class TaskDataSourceImpl implements TaskDataSource {
         ),
         settings: const ConnectionSettings(sslMode: SslMode.disable),
       );
-      await _createTable(conn: conn);
+      await createTable(conn: conn);
 
       final result = await conn.execute(
         Sql.named('SELECT * FROM $tableName WHERE id=@id'),
@@ -133,7 +133,7 @@ class TaskDataSourceImpl implements TaskDataSource {
         ),
         settings: const ConnectionSettings(sslMode: SslMode.disable),
       );
-      await _createTable(conn: conn);
+      await createTable(conn: conn);
 
       final newTask = TaskF(
         id: const Uuid().v4(),
@@ -158,8 +158,9 @@ class TaskDataSourceImpl implements TaskDataSource {
 
       await conn.close();
       return Right(newTask);
-    } catch (e) {
-      print(e);
+    } catch (e, stacktree) {
+      print('Err $e, StackTree $stacktree');
+
       return Left(
         InternalServerErrorResponse(time: DateTime.now().toIso8601String()),
       );
@@ -168,7 +169,42 @@ class TaskDataSourceImpl implements TaskDataSource {
 
   @override
   Future<Either<FailureResponse, bool>> deleteTaskByID(String id) async {
-    throw UnimplementedError();
+    try {
+      final conn = await Connection.open(
+        Endpoint(
+          host: 'localhost',
+          database: 'postgres',
+          username: 'user',
+          password: 'pass',
+        ),
+        settings: const ConnectionSettings(sslMode: SslMode.disable),
+      );
+      final result = await conn.execute(
+        Sql.named('SELECT * FROM $tableName WHERE id=@id'),
+        parameters: {'id': id},
+      );
+
+      if (result.isNotEmpty) {
+        await conn.execute(
+          Sql.named('DELETE FROM $tableName WHERE id=@id'),
+          parameters: {'id': id},
+        );
+        await conn.close();
+
+        return const Right(true);
+      } else {
+        await conn.close();
+        return Left(
+          NotFoundResponse(time: DateTime.now().toIso8601String()),
+        );
+      }
+    } catch (e, stacktree) {
+      print('Err $e, StackTree $stacktree');
+
+      return Left(
+        InternalServerErrorResponse(time: DateTime.now().toIso8601String()),
+      );
+    }
   }
 
   @override
@@ -206,7 +242,7 @@ class TaskDataSourceImpl implements TaskDataSource {
           description: updateTaskDto.description,
         );
         await conn.execute(
-          'UPDATE $tableName SET  updated_at=\$2, title=\$3, description=\$4, status=\$5 WHERE id=\$1',
+          'UPDATE $tableName SET updated_at=\$2, title=\$3, description=\$4, status=\$5 WHERE id=\$1',
           parameters: [
             newTask.id,
             newTask.updatedAt.toIso8601String(),
@@ -218,8 +254,9 @@ class TaskDataSourceImpl implements TaskDataSource {
         await conn.close();
         return Right(newTask);
       }
-    } catch (e) {
-      print(e);
+    } catch (e, stacktree) {
+      print('Err $e, StackTree $stacktree');
+
       return Left(
         InternalServerErrorResponse(time: DateTime.now().toIso8601String()),
       );
@@ -228,7 +265,7 @@ class TaskDataSourceImpl implements TaskDataSource {
 
   ///docker run --detach --name postgres_f_quizz_test -p 127.0.0.1:5432:5432 -e POSTGRES_USER=user -e POSTGRES_DATABASE=database -e POSTGRES_PASSWORD=pass postgres
 
-  Future<Result> _createTable({required Connection conn}) async {
+  Future<Result> createTable({required Connection conn}) async {
     final res = await conn.execute('CREATE TABLE IF NOT EXISTS $tableName ('
         '  id TEXT NOT NULL, '
         '  status INTEGER NOT NULL DEFAULT -1, '

@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:backend/shared/responses/failures/failure_response.dart';
+import 'package:backend/shared/responses/failures/internal_server_error_response.dart';
 import 'package:backend/shared/responses/failures/method_not_allowed_response.dart';
 import 'package:backend/shared/responses/success_response.dart';
 import 'package:backend/tasks/task_data_source.dart';
@@ -98,5 +99,36 @@ Future<Response> _onPatch(RequestContext context, String id) async {
 }
 
 Future<Response> _onDelete(RequestContext context, String id) async {
-  return Response(body: 'Welcome to Dart Frog!');
+  final repo = context.read<TaskDataSource>();
+  final result = await repo.deleteTaskByID(id);
+  if (result is Right<FailureResponse, bool>) {
+    final taskDto = TaskDto(
+      id: id,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      status: -10,
+      title: '',
+      description: '',
+    );
+    final res = SuccessResponse<TaskDto>(
+      data: taskDto,
+      time: DateTime.now().toIso8601String(),
+    );
+    return Response.json(
+      statusCode: res.code,
+      body: res.toMap(),
+    );
+  } else if (result is Left) {
+    return Response.json(
+      statusCode: result.left.code,
+      body: result.left.toMap(),
+    );
+  } else {
+    final err =
+        InternalServerErrorResponse(time: DateTime.now().toIso8601String());
+    return Response.json(
+      statusCode: err.code,
+      body: err.toMap(),
+    );
+  }
 }
