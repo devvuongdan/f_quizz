@@ -38,8 +38,23 @@ abstract class TaskDataSource {
 }
 
 class TaskDataSourceImpl implements TaskDataSource {
-  static const tableName = 'tasks';
   TaskDataSourceImpl();
+  static const tableName = 'tasks';
+
+  ///docker run --detach --name postgres_f_quizz_test -p 127.0.0.1:5432:5432 -e POSTGRES_USER=user -e POSTGRES_DATABASE=database -e POSTGRES_PASSWORD=pass postgres
+
+  Future<Result> createTable({required Connection conn}) async {
+    final res = await conn.execute('CREATE TABLE IF NOT EXISTS $tableName ('
+        '  id TEXT NOT NULL, '
+        '  status INTEGER NOT NULL DEFAULT -1, '
+        '  created_at TEXT NOT NULL, '
+        '  updated_at TEXT NOT NULL, '
+        '  title TEXT NOT NULL, '
+        '  description TEXT NOT NULL '
+        ')');
+
+    return res;
+  }
 
   @override
   Future<Either<FailureResponse, List<TaskF>>> getListTaskByParam({
@@ -136,8 +151,6 @@ class TaskDataSourceImpl implements TaskDataSource {
             result.map((element) => element.toColumnMap()).toList();
         final List<TaskF> taskList =
             data.map((e) => TaskF.fromJson(jsonEncode(e))).toList();
-
-        await conn.close();
 
         return Right(
           taskList.first,
@@ -295,20 +308,5 @@ class TaskDataSourceImpl implements TaskDataSource {
         InternalServerErrorResponse(time: DateTime.now().toIso8601String()),
       );
     }
-  }
-
-  ///docker run --detach --name postgres_f_quizz_test -p 127.0.0.1:5432:5432 -e POSTGRES_USER=user -e POSTGRES_DATABASE=database -e POSTGRES_PASSWORD=pass postgres
-
-  Future<Result> createTable({required Connection conn}) async {
-    final res = await conn.execute('CREATE TABLE IF NOT EXISTS $tableName ('
-        '  id TEXT NOT NULL, '
-        '  status INTEGER NOT NULL DEFAULT -1, '
-        '  created_at TEXT NOT NULL, '
-        '  updated_at TEXT NOT NULL, '
-        '  title TEXT NOT NULL, '
-        '  description TEXT NOT NULL '
-        ')');
-
-    return res;
   }
 }
