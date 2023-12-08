@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, lines_longer_than_80_chars
+// ignore_for_file: avoid_print, lines_longer_than_80_chars, public_member_api_docs
 
 import 'dart:convert';
 
@@ -22,6 +22,9 @@ abstract class UserDataSource {
   Future<Either<FailureResponse, UserF>> getUserByUsername(
     String username,
   );
+
+  ///
+  Future<Either<FailureResponse, UserF>> getUserByID(String id);
 }
 
 ///
@@ -30,7 +33,7 @@ class UserDataSourceImpl implements UserDataSource {
   UserDataSourceImpl();
 
   ///
-  static const tableName = 'user2';
+  static const tableName = 'user3';
 
   ///
   Future<Result> createTable({required Connection conn}) async {
@@ -41,7 +44,9 @@ class UserDataSourceImpl implements UserDataSource {
         '  updated_pw_at TEXT NOT NULL, '
         '  username TEXT NOT NULL, '
         '  hashed_pw TEXT NOT NULL, '
-        '  status INTEGER NOT NULL DEFAULT 0 '
+        '  status INTEGER NOT NULL DEFAULT 0, '
+        '  name TEXT NOT NULL, '
+        '  phone TEXT NOT NULL '
         ')');
 
     return res;
@@ -75,9 +80,11 @@ class UserDataSourceImpl implements UserDataSource {
           hashedPw: createUserDto.password.hashValue,
           updatedPwAt: now,
           status: -1,
+          name: '',
+          phone: '',
         );
         await conn.execute(
-          'INSERT INTO $tableName (id, created_at, updated_at, username, hashed_pw, updated_pw_at, status) VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7)',
+          'INSERT INTO $tableName (id, created_at, updated_at, username, hashed_pw, updated_pw_at, status, name, phone) VALUES (\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8, \$9)',
           parameters: [
             newUser.id,
             newUser.createdAt.toIso8601String(),
@@ -86,6 +93,8 @@ class UserDataSourceImpl implements UserDataSource {
             newUser.hashedPw,
             newUser.updatedPwAt.toIso8601String(),
             newUser.status,
+            newUser.name,
+            newUser.phone,
           ],
         );
         return Right(newUser);
@@ -141,6 +150,45 @@ class UserDataSourceImpl implements UserDataSource {
         final userList =
             data.map((e) => UserF.fromJson(jsonEncode(e))).toList();
         return Right(userList.first);
+      }
+    } catch (e, stacktree) {
+      print('Err $e, StackTree $stacktree');
+
+      return Left(
+        InternalServerErrorResponse(time: DateTime.now().toIso8601String()),
+      );
+    }
+  }
+
+  @override
+  Future<Either<FailureResponse, UserF>> getUserByID(String id) async {
+    try {
+      final conn = await Connection.open(
+        Endpoint(
+          host: 'localhost',
+          database: 'postgres',
+          username: 'user',
+          password: 'pass',
+        ),
+        settings: const ConnectionSettings(sslMode: SslMode.disable),
+      );
+      await createTable(conn: conn);
+
+      final result = await conn.execute(
+        Sql.named('SELECT * FROM $tableName WHERE id=@id'),
+        parameters: {'id': id},
+      );
+      await conn.close();
+      if (result.isEmpty) {
+        return Left(NotFoundResponse(time: DateTime.now().toIso8601String()));
+      } else {
+        final data = result.map((element) => element.toColumnMap()).toList();
+        final taskList =
+            data.map((e) => UserF.fromJson(jsonEncode(e))).toList();
+
+        return Right(
+          taskList.first,
+        );
       }
     } catch (e, stacktree) {
       print('Err $e, StackTree $stacktree');

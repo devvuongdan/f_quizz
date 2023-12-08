@@ -12,6 +12,8 @@ class UserDto extends DataF {
     required this.hashedPw,
     required this.updatedPwAt,
     required this.status,
+    required this.name,
+    required this.phone,
   });
 
   factory UserDto.fromMap(Map<String, dynamic> map) {
@@ -23,6 +25,8 @@ class UserDto extends DataF {
       hashedPw: map['hashed_pw'] as String,
       updatedPwAt: DateTime.parse(map['updated_pw_at'] as String),
       status: map['status'] as int,
+      name: map['name'] as String,
+      phone: map['phone'] as String,
     );
   }
 
@@ -36,6 +40,8 @@ class UserDto extends DataF {
   final String hashedPw;
   final DateTime updatedPwAt;
   final int status;
+  final String name;
+  final String phone;
 
   @override
   Map<String, dynamic> toMap() {
@@ -47,6 +53,8 @@ class UserDto extends DataF {
       'hashed_pw': hashedPw,
       'updated_pw_at': updatedPwAt.toIso8601String(),
       'status': status,
+      'name': name,
+      'phone': phone,
     };
   }
 

@@ -1,8 +1,13 @@
 // ignore_for_file: no_default_cases
 
-
+import 'package:backend/shared/responses/failures/failure_response.dart';
 import 'package:backend/shared/responses/failures/method_not_allowed_response.dart';
+import 'package:backend/shared/responses/success_response.dart';
+import 'package:backend/users/user_data_source.dart';
+import 'package:backend/users/user_dto.dart';
 import 'package:dart_frog/dart_frog.dart';
+import 'package:either_dart/either.dart';
+import 'package:shared/models/user/userf.dart';
 
 Future<Response> onRequest(RequestContext context, String id) async {
   switch (context.request.method) {
@@ -24,36 +29,34 @@ Future<Response> onRequest(RequestContext context, String id) async {
 }
 
 Future<Response> _onGet(RequestContext context, String id) async {
-  final err = MethodNotAllowedResponse(time: DateTime.now().toIso8601String());
-  return Response.json(
-    statusCode: err.code,
-    body: err.toMap(),
-  );
-  // final repo = context.read<UserDataSource>();
-  // final result = await repo.getTaskByID(id);
-  // if (result is Right<FailureResponse, TaskF>) {
-  //   final taskDto = TaskDto(
-  //     id: result.right.id,
-  //     createdAt: result.right.createdAt,
-  //     updatedAt: result.right.updatedAt,
-  //     status: result.right.status,
-  //     title: result.right.title,
-  //     description: result.right.description,
-  //   );
-  //   final res = SuccessResponse<TaskDto>(
-  //     data: taskDto,
-  //     time: DateTime.now().toIso8601String(),
-  //   );
-  //   return Response.json(
-  //     statusCode: res.code,
-  //     body: res.toMap(),
-  //   );
-  // } else {
-  //   return Response.json(
-  //     statusCode: result.left.code,
-  //     body: result.left.toMap(),
-  //   );
-  // }
+  final repo = context.read<UserDataSource>();
+  final result = await repo.getUserByID(id);
+  if (result is Right<FailureResponse, UserF>) {
+    final userDto = UserDto(
+      id: result.right.id,
+      createdAt: result.right.createdAt,
+      updatedAt: result.right.updatedAt,
+      status: result.right.status,
+      username: result.right.username,
+      hashedPw: '',
+      updatedPwAt: result.right.updatedPwAt,
+      name: result.right.name,
+      phone: result.right.phone,
+    );
+    final res = SuccessResponse<UserDto>(
+      data: userDto,
+      time: DateTime.now().toIso8601String(),
+    );
+    return Response.json(
+      statusCode: res.code,
+      body: res.toMap(),
+    );
+  } else {
+    return Response.json(
+      statusCode: result.left.code,
+      body: result.left.toMap(),
+    );
+  }
 }
 
 Future<Response> _onPatch(RequestContext context, String id) async {

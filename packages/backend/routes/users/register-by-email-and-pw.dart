@@ -15,7 +15,7 @@ Future<Response> onRequest(RequestContext context) async {
       return _onPost(context);
 
     default:
-      return Response(body: 'Welcome to Dart Frog!');
+      return Response(body: 'Welcome F Quizz!!!');
   }
 }
 
@@ -31,8 +31,10 @@ Future<Response> _onPost(RequestContext context) async {
       updatedAt: result.right.updatedAt,
       status: result.right.status,
       username: result.right.username,
-      hashedPw: result.right.hashedPw,
+      hashedPw: '',
       updatedPwAt: result.right.updatedPwAt,
+      name: result.right.name,
+      phone: result.right.phone,
     );
     final res = SuccessResponse<UserDto>(
       data: userDto,

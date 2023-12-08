@@ -33,6 +33,5 @@ class TaskDto extends DataF {
   final String description;
   final int status;
 
-  @override
   String toJson() => json.encode(toMap());
 }
