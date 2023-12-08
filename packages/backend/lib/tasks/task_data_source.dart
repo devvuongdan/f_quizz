@@ -1,7 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first, missing_whitespace_between_adjacent_strings, lines_longer_than_80_chars, omit_local_variable_types, avoid_print
 import 'dart:convert';
+import 'dart:math';
 
-import 'package:backend/shared/responses/failures/bad_request_response.dart';
 import 'package:backend/shared/responses/failures/failure_response.dart';
 import 'package:backend/shared/responses/failures/internal_server_error_response.dart';
 import 'package:backend/shared/responses/failures/notfound_response.dart';
@@ -18,6 +18,8 @@ abstract class TaskDataSource {
   Future<Either<FailureResponse, List<TaskF>>> getListTaskByParam({
     int? limit,
     int? offset,
+    String? query,
+    int? status,
   });
 
   ///
@@ -43,6 +45,8 @@ class TaskDataSourceImpl implements TaskDataSource {
   Future<Either<FailureResponse, List<TaskF>>> getListTaskByParam({
     int? limit,
     int? offset,
+    String? query,
+    int? status,
   }) async {
     final now = DateTime.now();
     try {
@@ -56,30 +60,24 @@ class TaskDataSourceImpl implements TaskDataSource {
         settings: const ConnectionSettings(sslMode: SslMode.disable),
       );
       await createTable(conn: conn);
-      late final Result result;
-      if (limit == null && offset == null) {
-        result = await conn.execute(
-          'SELECT * FROM $tableName',
-        );
-      } else if (limit != null && offset != null) {
-        result = await conn.execute(
-          'SELECT * FROM $tableName LIMIT $limit OFFSET $offset',
-        );
+      String execute = 'SELECT * FROM $tableName';
+
+      if (query != null) {
+        execute +=
+            " WHERE title LIKE '%$query%' OR description LIKE '%$query%'";
+
+        if (status != null) {
+          execute += " AND status = '$status'";
+        }
       } else {
-        String errorMessage = 'Bad Request';
-        if (limit == null) {
-          errorMessage += ', missing LIMIT';
+        if (status != null) {
+          execute += " WHERE status = '$status'";
         }
-        if (offset == null) {
-          errorMessage += ', missing OFFSET';
-        }
-        return Left(
-          BadRequestResponse(
-            result: FailureResult(message: errorMessage),
-            time: now.toIso8601String(),
-          ),
-        );
       }
+
+      final Result result = await conn.execute(
+        execute,
+      );
 
       await conn.close();
       if (result.isEmpty) {
@@ -91,6 +89,18 @@ class TaskDataSourceImpl implements TaskDataSource {
 
       final List<TaskF> taskList =
           data.map((e) => TaskF.fromJson(jsonEncode(e))).toList();
+
+      //Phân trang
+      final int start = offset == null ? 0 : min(taskList.length - 1, offset);
+      final int end = limit == null
+          ? taskList.length - 1
+          : min(taskList.length - 1, start + limit);
+
+      taskList.getRange(
+        start,
+        end,
+      );
+
       return Right(taskList);
     } catch (e, stacktree) {
       print('Err $e, Stacktree $stacktree');

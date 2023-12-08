@@ -66,15 +66,21 @@ Future<Response> _onGet(RequestContext context) async {
 
   int? limit;
   int? offset;
+  String? query;
+  int? status;
 
   if (params.isNotEmpty) {
     limit = int.tryParse(params['limit'].toString());
     offset = int.tryParse(params['offset'].toString());
+    query = params['query'];
+    status = int.tryParse(params['status'].toString());
   }
 
   final result = await repo.getListTaskByParam(
     limit: limit,
     offset: offset,
+    query: query,
+    status: status,
   );
   if (result is Right<FailureResponse, List<TaskF>>) {
     final dataList = result.right.map((e) {
